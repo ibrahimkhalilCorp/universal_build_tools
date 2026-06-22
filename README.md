@@ -1,129 +1,188 @@
 # Universal Project Build Toolkit
 
-> 📖 **পুরো instructions, সব command, pros & cons, troubleshooting** → `UserManual.md` দেখো।
-> এই README টা short overview মাত্র।
+> 📖 **পুরো instructions, সব command, Graphify + OpenSpec, troubleshooting** → `UserManual.md`।
+> এই README টা short overview — এক নজরে কী আছে, কীভাবে শুরু করবে।
 
-A portable, project-agnostic build system. Drop it into **any**
-repo, fill in one config file, and you get the whole phased workflow — user stories →
-architecture → design → codegen → research → security — plus the **interactive HTML
-audit/journey report** generator, working for that project.
+A portable, project-agnostic build system. যেকোনো repo তে drop করো, একটা config ভরো —
+পুরো phased workflow (user stories → architecture → design → codegen → research → security)
+আর **interactive HTML audit/journey report** সেই project এর জন্য তৈরি।
 
-Nothing here is hardcoded to any one project. Everything project-specific lives in
-**`PROJECT.config.md`**. The prompts read placeholders like `{{PROJECT_NAME}}`,
-`{{TECH_STACK}}`, `{{DOMAIN_RULES}}` from it.
+কিছুই hardcoded নয়। সব project-specific জিনিস থাকে **`PROJECT.config.md`** এ।
+Prompt গুলো `{{PLACEHOLDER}}` দিয়ে সেখান থেকে value টেনে নেয়।
+
+> **নতুন project?** → `NEW_PROJECT.md`
+> **চলতি repo তে নতুন feature?** → `EXISTING_PROJECT.md`
+> **মূল নীতি:** এক toolkit, যত project — প্রতিবার শুধু `PROJECT.config.md` বদলাও।
 
 ---
 
-> **নতুন project শুরু করছ?** এক পাতার checklist দেখো → `NEW_PROJECT.md`।
-> **চলতি (existing) repo তে বসাচ্ছ?** → `EXISTING_PROJECT.md`।
-> মূল কথা: এক toolkit, যত project — প্রতিবার শুধু `PROJECT.config.md` বদলাও
-> (আর `PROJECT_MODE: greenfield | brownfield` সেট করো)।
-
 ## ⚡ এক command (auto)
 
-বেশিরভাগ সময় এটাই লাগবে — toolkit নিজে mode detect করে, graph + spec ধরে,
-আর পুরো phase sequence নিজে চালায়:
+বেশিরভাগ ক্ষেত্রে এটাই লাগবে — toolkit নিজে greenfield/brownfield detect করে,
+Graphify grounding টানে, built-in spec layer চালায়, তারপর পুরো phase sequence শেষ করে:
 
 ```bash
 cd _build_tools
 ./auto.sh ../              # ../ = তোমার আসল repo
-# অথবা: ./auto.sh ../ myproj 12   (নাম + max_stages)
+./auto.sh ../ myproj 12   # নাম + max_stages দিতে চাইলে
 ```
 
-`auto.sh` যা করে: greenfield/brownfield detect → graph grounding (থাকলে) →
-built-in spec layer → ঠিক ক্রমে phase গুলো (`spec → … → codegen → … → report`)।
-কিছু আলাদা করে বলতে হয় না। আলাদা একটা phase চালাতে চাইলে নিচের `build.sh` আছে।
+আলাদা একটা phase চালাতে চাইলে `build.sh` আছে (নিচে দেখো)।
 
-## What's inside
+---
+
+## ভেতরে কী আছে
 
 ```
 universal_build_tools/
-├── README.md                  ← you are here
-├── PROJECT.config.md          ← ⭐ THE ONLY FILE YOU EDIT PER PROJECT
-├── CLAUDE.md                  ← universal spine (reads PROJECT.config.md)
-├── build.sh                   ← stage-looping driver (any phase, any project)
+├── README.md                   ← you are here
+├── UserManual.md               ← পুরো manual (setup → advanced)
+├── NEW_PROJECT.md              ← নতুন (greenfield) project checklist
+├── EXISTING_PROJECT.md         ← চলতি (brownfield) repo + feature add checklist
+│
+├── PROJECT.config.md           ← ⭐ একমাত্র file যেটা per-project তুমি ভরো
+├── CLAUDE.md                   ← universal spine (workflow order, grounding rules)
+│
+├── auto.sh                     ← ⚡ এক command — mode detect, সব phase নিজে চালায়
+├── build.sh                    ← এক phase করে চালানোর driver
+│
 ├── .prompts/
-│   ├── _base.md               ← shared rules every phase inherits
+│   ├── _base.md                ← সব phase এর shared rule (mode, grounding, spec)
+│   ├── spec.md                 ← built-in OpenSpec-style spec layer
 │   ├── user_stories.md
 │   ├── architecture.md
 │   ├── abstract_design.md
 │   ├── codegen.md
 │   ├── research_report.md
 │   ├── security_test.md
-│   ├── code_quality.md        ← always-on baseline
-│   └── interactive_report.md  ← the universal journey/audit HTML generator
+│   ├── code_quality.md         ← always-on baseline
+│   └── interactive_report.md   ← universal journey/audit HTML generator
+│
 ├── .tracker/
-│   └── progress.template.md
-└── templates/
-    ├── PROJECT.config.example.md   ← simple filled example (generic "TaskFlow API")
-    └── PROJECT.config.heyhomex.md  ← richer real-world example (domain rules, formulas)
+│   └── progress.template.md    ← session-continuity tracker
+│
+└── templates/                  ← pre-filled example configs (closest টা নিয়ে শুরু করো)
+    ├── PROJECT.config.example.md       (generic "TaskFlow API")
+    ├── PROJECT.config.heyhomex.md      (pipeline + hybrid search API)
+    ├── PROJECT.config.aaizaql.md       (NL→SQL library)
+    └── PROJECT.config.proactive_ai.md  (multi-tenant recommendation platform)
 ```
 
 ---
 
-## Where to put the toolkit (Option B — clean repo)
+## কোথায় বসাবে (Option B — পরিষ্কার repo)
 
-Keep the toolkit in its own subfolder so your repo root stays clean:
+Toolkit কে নিজের subfolder এ রাখো যাতে repo root পরিষ্কার থাকে:
 
 ```
-AaizaQL/                     ← your repo
-├── _build_tools/            ← drop the toolkit here
-│   ├── build.sh
-│   ├── PROJECT.config.md
-│   ├── CLAUDE.md
+YourRepo/
+├── _build_tools/         ← toolkit এখানে copy করো (এখান থেকে চালাও)
+│   ├── auto.sh  build.sh  PROJECT.config.md  CLAUDE.md
 │   ├── .prompts/  .tracker/  templates/
-├── aaizaql/                 ← your real code  (this is the CONTEXT)
+├── yourcode/             ← তোমার আসল code (এটাই CONTEXT)
 ├── tests/
 └── ...
 ```
 
-Run it **from inside `_build_tools/`**, pointing CONTEXT at the parent repo:
+Driver নিজের folder নিজে খুঁজে নেয় (`BASH_SOURCE`), তাই যেকোনো directory থেকে
+চালালেও কাজ করে। Report যায় `../build_output/<name>_report.html` এ।
+
+---
+
+## Quick setup
+
+**নতুন project (greenfield):**
 
 ```bash
-cd _build_tools
-./build.sh report ../ aaizaql 10
+cp -r universal_build_tools  YourRepo/_build_tools
+cd YourRepo/_build_tools
+cp templates/PROJECT.config.example.md  PROJECT.config.md   # closest template নাও
+# PROJECT.config.md ভরো → PROJECT_MODE: greenfield
+./auto.sh ../  myproject
 ```
 
-- The driver finds its own folder, so toolkit files (config, prompts, tracker)
-  resolve no matter where you launch it from.
-- The report is written to `../build_output/aaizaql_report.html` by default.
-  Override with `OUT_DIR=/some/path ./build.sh report ../ aaizaql 10`.
-- The tracker lives in `_build_tools/.tracker/`. Add `_build_tools/.tracker/`
-  to `.gitignore` if you don't want progress notes committed.
+**চলতি repo তে feature add (brownfield):**
+
+```bash
+cp -r universal_build_tools  YourRepo/_build_tools
+cd YourRepo/_build_tools
+cp templates/PROJECT.config.<closest>.md  PROJECT.config.md
+# PROJECT_MODE: brownfield দাও
+# SPEC.ACTIVE_CHANGE: <your-feature>  (kebab-case, e.g. add-export-csv)
+
+# বড় feature হলে আগে spec দেখে নাও:
+./build.sh spec ../ myproject 6       # proposal → delta specs → design → tasks
+# tasks.md review করো, তারপর:
+./build.sh codegen ../ myproject 12
+# অথবা সব এক সাথে:
+./auto.sh ../  myproject 12
+```
+
+Template বেছে নেওয়ার guide:
+
+| Repo এর ধরন | Template |
+|---|---|
+| pipeline / full-stack / API + data | `heyhomex` |
+| library / SDK / package | `aaizaql` |
+| multi-tenant / service / platform | `proactive_ai` |
+| generic | `example` |
 
 ---
 
-## 60-second setup for a new project
+## build.sh — phase by phase
 
-1. **Copy** `universal_build_tools/` into your repo root (or keep it as a sibling and
-   point `--add-dir` at the repo).
-2. **Fill in** `PROJECT.config.md` — name, goal, stack, structure rules, domain rules,
-   "what NOT to do" list. This is the *only* file you change. Use
-   `templates/PROJECT.config.example.md` (simple) or
-   `templates/PROJECT.config.heyhomex.md` (richer) as a reference.
-3. **Pick a language** for the prompts: keep the Banglish voice or set
-   `VOICE: english` in the config (the `_base.md` honors it).
-4. **Run a phase**:
-   ```bash
-   ./build.sh codegen ./           # implement next component
-   ./build.sh report  ./ myproject # build the interactive HTML report
-   ```
-5. The driver loops one stage per Claude CLI call until the tracker says DONE —
-   this is what lets the big HTML report finish instead of collapsing into a skeleton.
+```bash
+./build.sh <phase> <context> [system_name] [max_stages]
+
+# উদাহরণ:
+./build.sh spec          ../ myproject 6
+./build.sh user_stories  ../ myproject 10
+./build.sh architecture  ../ myproject 10
+./build.sh abstract_design ../ myproject 10
+./build.sh codegen       ../ myproject 12
+./build.sh research_report ../ myproject 10
+./build.sh security_test ../ myproject 8
+./build.sh report        ../ myproject 12
+```
+
+`max_stages` হলো upper limit — tracker complete হলে আগেই থামে।
+
+**greenfield phase sequence:** `spec → user_stories → architecture → abstract_design → codegen → research_report → security_test → report`
+
+**brownfield phase sequence:** `spec → codegen → research_report → security_test → report`
 
 ---
 
-## The two things that make this "universal"
+## দুটো জিনিস যা এটাকে "universal" করে
 
-1. **Config-driven, not hardcoded.** Every prompt opens by reading `PROJECT.config.md`
-   and `CLAUDE.md`. Swap the config, and the same prompts target a different system.
-   Placeholders are written `{{LIKE_THIS}}` and resolved from the config.
+**১. Config-driven, hardcoded নয়।**
+প্রতিটা prompt শুরু হয় `PROJECT.config.md` পড়ে। Config বদলাও → একই prompts অন্য
+system ধরে। Placeholder লেখা হয় `{{LIKE_THIS}}` দিয়ে।
 
-2. **The report generator is system-shaped, not project-specific.** `interactive_report.md`
-   asks the model to discover the *target system's* real components, pipeline stages,
-   formulas, and known issues from the inputs, then build the slides around those.
-   For a pipeline project it shows the pipeline; for a library it shows the call graph;
-   for an API it shows the request lifecycle. Same skeleton, different skeleton-filling.
+**২. Report generator system-shaped, project-specific নয়।**
+`interactive_report.md` model কে বলে target system এর real component, pipeline stage,
+formula, known issue নিজে discover করতে — তারপর সেগুলো দিয়ে slide বানাতে।
+Pipeline হলে pipeline দেখায়, library হলে call graph, API হলে request lifecycle।
+একই skeleton, ভিন্ন filling।
 
-See `PROJECT.config.md` for the full field list and `.prompts/interactive_report.md`
-for how the report adapts per system.
+---
+
+## Graphify + OpenSpec (built-in)
+
+**Graphify (grounding):** Claude যাতে existing code এর আসল component নাম/relationship
+হ্যালুসিনেট না করে। `KNOWLEDGE_GRAPH.TOOL: graphify` config এ দিলে প্রতি phase
+graph query করে ground-truth টানে। না থাকলে `TOOL: none` — কোনো error নেই, config
+থেকে চলে।
+
+**OpenSpec (spec layer):** Code লেখার আগে change এ align করার lightweight layer —
+পুরো spec rewrite নয়, শুধু delta। `spec` phase চালালে বানায়:
+
+```
+openspec/changes/<feature-name>/
+├── proposal.md   ← কী + কেন
+├── specs.md      ← ADDED / MODIFIED / REMOVED (delta only)
+├── design.md     ← interface/schema/endpoint decision
+└── tasks.md      ← implementable step list (codegen এক এক করে নেবে)
+```
+
+বিস্তারিত → `UserManual.md`।
