@@ -3,6 +3,14 @@
 # Loops ONE stage per Claude CLI call until the phase tracker reports DONE.
 # This sidesteps the single-response token ceiling that produces skeletons.
 #
+# ⚠ PATCHED (2026-07-01): removed "Bash" from --allowedTools.
+#   --add-dir only scopes Read/Write/Edit — Bash is an unrestricted shell and
+#   can cd/write ANYWHERE on disk regardless of --add-dir. A prior run used
+#   Bash to wander outside CONTEXT and edit an unrelated repo, then rewrote
+#   PROJECT.config.md to retarget the project at that directory. Do not
+#   re-add "Bash" to allowedTools unless you also add a command allowlist
+#   (e.g. Bash(python -m pytest*) only) — never grant bare "Bash" again.
+#
 # Usage:
 #   ./build.sh <phase> <context_path> [system_name] [max_stages]
 #
@@ -88,10 +96,17 @@ CONTEXT / INPUTS: ${CONTEXT}
 OUTPUT REPORT PATH: ${OUT}
 TRACKER PATH: ${TOOLKIT_DIR}/${TRACKER}
 (Write/extend the report at OUTPUT REPORT PATH and update the tracker at TRACKER PATH. Ignore any /mnt/... example paths shown inside the prompt text.)
+
+SCOPE GUARDRAIL (hard rule, not a suggestion):
+- All file writes/edits MUST stay strictly inside CONTEXT (${CONTEXT}) or TOOLKIT_DIR (${TOOLKIT_DIR}).
+- Do NOT cd, read-for-grounding-then-write, or otherwise modify ANY path outside those two directories, even if you find what looks like a related/older/'more real' project elsewhere on disk.
+- If you discover a related project outside CONTEXT, STOP, do not touch it, and report its path in the tracker/output instead of editing it.
+- Do NOT rewrite PROJECT.config.md's PROJECT_MODE, CURRENT_PHASE, or REPO_LAYOUT to point at a different directory than CONTEXT. If you believe CONTEXT is wrong, report that in the tracker and stop — do not silently retarget the project yourself.
+
 Do exactly ONE stage per the prompt's rules, then stop." \
     --add-dir "$CONTEXT" \
     --add-dir "$TOOLKIT_DIR" \
-    --allowedTools "Read,Write,Edit,Bash"
+    --allowedTools "Read,Write,Edit"
 
   # Stop once the tracker has no unchecked boxes left.
   if [ -f "$TRACKER" ] && ! grep -q '\[ \]' "$TRACKER"; then
