@@ -11,6 +11,12 @@
 #   re-add "Bash" to allowedTools unless you also add a command allowlist
 #   (e.g. Bash(python -m pytest*) only) — never grant bare "Bash" again.
 #
+# ⚠ ADDED (2026-07-01): graphify auto extract/update for the codegen phase.
+#   This runs graphify itself, as fixed script-level bash commands with no
+#   agent judgment involved (not inside the nested `claude -p` call) — safe
+#   by construction, since the command never varies and never touches
+#   PROJECT.config.md. Only fires when KNOWLEDGE_GRAPH.TOOL: graphify is set.
+#
 # Usage:
 #   ./build.sh <phase> <context_path> [system_name] [max_stages]
 #
@@ -66,8 +72,21 @@ echo "phase=$PHASE  system=$SYSTEM  max=$MAX  prompt=$PROMPT_FILE"
 
 # --- soft preflight: warn (never block) if grounding/spec missing ---
 # Graphify grounding
-if grep -qiE '^\s*-\s*TOOL:\s*(none)?\s*$' PROJECT.config.md; then
+GRAPHIFY_TOOL="$(grep -E '^\s*-\s*TOOL:' PROJECT.config.md | head -1 | sed -E 's/.*TOOL:\s*//' | tr -d ' \r')"
+GRAPH_JSON="${CONTEXT}/graphify-out/graph.json"
+
+if [ -z "$GRAPHIFY_TOOL" ] || [ "$GRAPHIFY_TOOL" = "none" ]; then
   echo "ℹ graphify: not configured (KNOWLEDGE_GRAPH.TOOL=none) — proceeding without graph grounding"
+elif ! command -v graphify >/dev/null 2>&1; then
+  echo "⚠ graphify: TOOL=graphify in config but 'graphify' CLI not found on PATH — proceeding without grounding"
+elif [ "$PHASE" = "codegen" ]; then
+  if [ -f "$GRAPH_JSON" ]; then
+    echo "↻ graphify: refreshing graph before this codegen pass (graphify update)"
+    graphify update "$CONTEXT" || echo "⚠ graphify update failed — continuing without fresh grounding (soft)"
+  else
+    echo "▶ graphify: no graph.json yet — running first extract (this may take a while, needs an LLM backend)"
+    graphify extract "$CONTEXT" || echo "⚠ graphify extract failed — continuing without grounding (soft)"
+  fi
 else
   echo "✓ graphify: configured — phases will pull graph grounding (soft)"
 fi
@@ -107,6 +126,13 @@ Do exactly ONE stage per the prompt's rules, then stop." \
     --add-dir "$CONTEXT" \
     --add-dir "$TOOLKIT_DIR" \
     --allowedTools "Read,Write,Edit"
+
+  # Keep the graph fresh between passes during codegen (deterministic, no LLM
+  # judgment involved — same fixed command every time, script-controlled).
+  if [ "$PHASE" = "codegen" ] && [ "$GRAPHIFY_TOOL" = "graphify" ] && command -v graphify >/dev/null 2>&1; then
+    echo "↻ graphify: updating graph after pass $i"
+    graphify update "$CONTEXT" || echo "⚠ graphify update failed — continuing (soft)"
+  fi
 
   # Stop once the tracker has no unchecked boxes left.
   if [ -f "$TRACKER" ] && ! grep -q '\[ \]' "$TRACKER"; then
