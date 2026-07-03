@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # auto.sh — এক command, পুরো toolkit নিজে চালায়।
 #
+# ⚠️ কোথায় চালাবে: Git Bash (Windows) বা সাধারণ bash terminal-এ, সরাসরি।
+#    Claude Code session-এর ভেতরে NA — এই script নিজেই claude CLI call করে;
+#    Claude-এর ভেতরে চালালে সে executor হয়ে নিজে সিদ্ধান্ত নিতে শুরু করে।
+#    PowerShell/CMD-ও না (.sh চলে না)।
+#
 # তুমি শুধু এটা চালাও:
 #     ./auto.sh ../              # CONTEXT = তোমার আসল repo
 #     ./auto.sh ../ myproj 12    # নাম + max_stages দিতে চাইলে

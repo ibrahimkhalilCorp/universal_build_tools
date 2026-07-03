@@ -63,8 +63,8 @@ VOICE: english
 
 ## KNOWLEDGE_GRAPH
 - TOOL: none
-- OUT_DIR: —
-- QUERY_CMD: —
+- OUT_DIR: —           <!-- if graphify: graphify-out/ -->
+- QUERY_CMD: —         <!-- if graphify: graphify query "{{question}}" --graph graphify-out/graph.json -->
 
 ## REPORT_INPUTS
 - WALKTHROUGH_SUBJECT: the request lifecycle (auth → validate → service → DB → response) for "create task" and "list overdue tasks"

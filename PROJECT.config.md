@@ -63,10 +63,12 @@ VOICE: banglish
 
 ## KNOWLEDGE_GRAPH
 <!-- Graphify (বা similar) use করলে ভরো; নাহলে TOOL: none রাখো।
-     _base.md §1a এই field গুলো দিয়ে কাজের আগে graph থেকে grounding টানে (SOFT)। -->
+     _base.md §1a এই field গুলো দিয়ে কাজের আগে graph থেকে grounding টানে (SOFT)।
+     Graphify হলে নিচের exact syntax টাই ব্যবহার করো — `graphify update` AST-only
+     (কোনো LLM key লাগে না) এবং build.sh codegen phase এ নিজে চালায়। -->
 - TOOL: none           <!-- graphify | none -->
-- OUT_DIR:             <!-- graph dump/export folder, e.g. .graphify/ -->
-- QUERY_CMD:           <!-- entities টানার command, e.g. `graphify query --scope {{module}}` -->
+- OUT_DIR:             <!-- graphify হলে: graphify-out/ (এটাই CLI-র default) -->
+- QUERY_CMD:           <!-- graphify হলে: graphify query "{{question}}" --graph graphify-out/graph.json -->
 
 ## SPEC
 <!-- Built-in OpenSpec-style spec layer। External CLI লাগে না।
@@ -83,4 +85,4 @@ VOICE: banglish
 - KNOWN_ISSUES_SOURCE: <!-- where verified bugs/fixes are documented -->
 
 ## GIT_RULES
-- 
+-
