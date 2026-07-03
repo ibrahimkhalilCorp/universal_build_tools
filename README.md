@@ -29,6 +29,10 @@ Claude শুধু script-এর *ভেতর থেকে* nested worker হ�
 
 **Reset দরকার?** পুরনো project-state (tracker, spec changes) এক command-এ মুছতে: `./reset.sh ../` (stale `openspec/project.md`-ও ধরে ফেলবে)।
 
+**Citation ঠিক আছে কিনা check করতে চাও?** generated docs (architecture.md ইত্যাদি)-এ US-N reference গুলো `docs/user_stories.md`-এর বিপরীতে verify করতে: `./check_citations.sh ../`। Undefined number ধরবে automatically; valid-but-wrong-meaning number গুলোর জন্য side-by-side text দেখাবে যাতে মানুষ দ্রুত eyeball করতে পারে (পুরোপুরি automated না, কিন্তু অনেক দ্রুত)।
+
+**Tracker আর disk out-of-sync মনে হচ্ছে?** `codegen`/`abstract_design` phase-এ `build.sh` প্রতি pass-এ actual file listing prompt-এ inject করে দেয় — nested session-কে তার নিজের context-compression বা tracker-এর ভুলের উপর নির্ভর করতে হয় না, disk-ই ground truth।
+
 ---
 
 ## ⚡ এক command (auto)

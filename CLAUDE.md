@@ -5,12 +5,21 @@
 
 ---
 
+## ⚠️ Token efficiency — Read করার আগে চেক করো
+
+**যদি `build.sh` দিয়ে চালানো হয় (headless `claude -p`),** নিচের ধাপ ১, ৩, ৪-এর
+file content **ইতিমধ্যে তোমার prompt-এর ভেতরেই paste করা আছে** —
+`PROJECT.config.md`, `.tracker/progress.md`, `.prompts/_base.md` সবগুলো।
+সেগুলো **আবার Read tool দিয়ে খুলো না** — টোকেন নষ্ট, একই content দুইবার।
+প্রতিটা ধাপের নিচে "(prompt-এ থাকলে skip করো)" লেখা আছে সেই অনুযায়ী।
+শুধু interactive session-এ (মানুষ সরাসরি চালালে) এই ফাইলগুলো নিজে Read করা লাগবে।
+
 ## Every session — প্রতিবার এই order এ
 
-1. **`PROJECT.config.md` পড়ো** — project identity, stack, rules সব এখান থেকে।
-2. **`CLAUDE.md` (এই file) পড়ো** — workflow rules।
-3. **`.tracker/progress.md` পড়ো** — কোন phase, কোন component বাকি।
-4. **`.prompts/_base.md` পড়ো** — সব phase এর shared rule।
+1. **`PROJECT.config.md` পড়ো** *(prompt-এ থাকলে skip করো)* — project identity, stack, rules।
+2. **`CLAUDE.md` (এই file)** — auto-loaded, আলাদা করে পড়া লাগে না।
+3. **`.tracker/progress.md` পড়ো** *(prompt-এ থাকলে skip করো)* — কোন phase, কোন component বাকি।
+4. **`.prompts/_base.md` পড়ো** *(prompt-এ থাকলে skip করো)* — সব phase এর shared rule।
 5. Current phase এর prompt load করো (`PROJECT.config.md > CURRENT_PHASE`)।
 6. **`.prompts/code_quality.md` সবসময় active** — phase নয়, baseline।
 7. কাজ করো → একবারে একটা component/stage।

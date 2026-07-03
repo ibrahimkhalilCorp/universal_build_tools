@@ -23,6 +23,7 @@
 set -euo pipefail
 
 TOOLKIT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+chmod +x "$TOOLKIT_DIR"/*.sh 2>/dev/null || true
 CONTEXT="${1:?Usage: ./auto.sh <repo_path> [system_name] [max_stages]}"
 SYSTEM="${2:-project}"
 MAX="${3:-10}"

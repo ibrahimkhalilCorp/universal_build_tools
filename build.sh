@@ -58,6 +58,10 @@ set -euo pipefail
 # --- resolve the toolkit's own directory (so cwd doesn't matter) ---
 TOOLKIT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Self-heal exec bits — git doesn't always preserve them across clone/download
+# (reset.sh in particular kept losing its +x). Cheap, idempotent, harmless.
+chmod +x "$TOOLKIT_DIR"/*.sh 2>/dev/null || true
+
 PHASE="${1:?Usage: build.sh <phase> <context_path> [system_name] [max_stages]}"
 CONTEXT="${2:?Provide the repo/context path}"
 SYSTEM="${3:-project}"
@@ -134,14 +138,32 @@ fi
 for i in $(seq 1 "$MAX"); do
   echo "──────────── pass $i / $MAX ────────────"
 
+  # Tracker/disk desync guard: a real incident showed a nested session's
+  # context got compressed mid-run and it "forgot" files it (or an earlier
+  # pass) had already written, unreflected in the tracker. Rather than trust
+  # tracker text alone, feed the ACTUAL current file tree as ground truth for
+  # phases that write code — cheap (one `find` call) and can't go stale.
+  DISK_STATE=""
+  if [ "$PHASE" = "codegen" ] || [ "$PHASE" = "abstract_design" ]; then
+    DISK_STATE="$(find "$CONTEXT" -type f \
+        \( -name '*.py' -o -name '*.md' -o -name '*.json' -o -name '*.toml' \) \
+        -not -path '*/.venv/*' -not -path '*/_build_tools/*' \
+        -not -path '*/node_modules/*' -not -path '*/graphify-out/*' \
+        2>/dev/null | sed "s|^${CONTEXT}/||" | sort)"
+  fi
+
   # Tool permissions per phase. NEVER grant bare "Bash" (see header warning).
-  # codegen alone gets a narrow command allowlist so its own tests can actually
-  # run instead of being "verified by read-through". The Bash(prefix:*) pattern
-  # allows only commands starting with that prefix — no cd-anywhere shell.
+  # `graphify query` is read-only and prefix-scoped — safe everywhere, and
+  # without it nested sessions can't use graphify's cheap targeted grounding
+  # at all (they'd fall back to reading raw files, which costs far more).
+  GRAPHIFY_QUERY_TOOL=""
+  if [ "$GRAPHIFY_TOOL" = "graphify" ] && command -v graphify >/dev/null 2>&1; then
+    GRAPHIFY_QUERY_TOOL=",Bash(graphify query:*)"
+  fi
   if [ "$PHASE" = "codegen" ]; then
-    ALLOWED_TOOLS="Read,Write,Edit,Bash(python -m pytest:*),Bash(python -m ruff:*),Bash(python -m mypy:*),Bash(pip install:*)"
+    ALLOWED_TOOLS="Read,Write,Edit,Bash(python -m pytest:*),Bash(python -m ruff:*),Bash(python -m mypy:*),Bash(pip install:*)${GRAPHIFY_QUERY_TOOL}"
   else
-    ALLOWED_TOOLS="Read,Write,Edit"
+    ALLOWED_TOOLS="Read,Write,Edit${GRAPHIFY_QUERY_TOOL}"
   fi
 
   # One stage per invocation. -p = single prompt run, then exit.
@@ -156,6 +178,12 @@ SYSTEM NAME: ${SYSTEM}
 CONTEXT / INPUTS: ${CONTEXT}
 OUTPUT REPORT PATH: ${OUT}
 TRACKER PATH: ${TOOLKIT_DIR}/${TRACKER}
+$(if [ -n "$DISK_STATE" ]; then echo "
+ACTUAL FILES ON DISK RIGHT NOW (ground truth — trust this over the tracker or
+your own memory of earlier passes if they conflict; the tracker can go stale
+mid-session, this listing cannot):
+${DISK_STATE}
+"; fi)
 (Write/extend the report at OUTPUT REPORT PATH and update the tracker at TRACKER PATH. Ignore any /mnt/... example paths shown inside the prompt text.)
 
 SCOPE GUARDRAIL (hard rule, not a suggestion):
